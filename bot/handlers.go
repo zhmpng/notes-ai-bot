@@ -27,7 +27,7 @@ func HandleMessage(b *Bot, msg *tgbotapi.Message) {
 	}
 
 	// Обработка аудио, если есть
-	transcribedText, err := ProcessAudio(b, msg, b.speechClient, os.Getenv("TELEGRAM_TOKEN"))
+	transcribedText, err := ProcessAudio(b, msg, os.Getenv("TELEGRAM_TOKEN"))
 	if err != nil {
 		SendMessage(b, msg.Chat.ID, err.Error())
 		return

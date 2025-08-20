@@ -30,12 +30,12 @@ func DownloadFile(url, path string) error {
 }
 
 func ConvertOggToWav(oggPath, wavPath string) error {
-	cmd := exec.Command("ffmpeg", "-i", oggPath, "-acodec", "pcm_s16le", "-ar", "16000", wavPath)
+	cmd := exec.Command("ffmpeg", "-i", oggPath, "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1", wavPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("❌ Ошибка обработки FFmpeg: %v, результат: %s", err, string(output))
 		return err
 	}
-	log.Printf("✅ Конец конвертации %s в %s", oggPath, wavPath)
+	log.Println("✅ Конец конвертации в :", wavPath)
 	return nil
 }

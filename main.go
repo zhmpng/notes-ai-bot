@@ -6,7 +6,6 @@ import (
 
 	"notes-ai-bot/bot"
 	"notes-ai-bot/llm"
-	"notes-ai-bot/speechkit"
 	"notes-ai-bot/storage"
 
 	"github.com/joho/godotenv"
@@ -19,11 +18,6 @@ func main() {
 	// Загрузка переменных окружения
 	if err := godotenv.Load(".env"); err != nil {
 		logger.Fatalf("❌ Не удалось загрузить .env: %v", err)
-	}
-
-	// Отладка: вывод всех переменных окружения
-	for _, env := range os.Environ() {
-		logger.Println("Env:", env)
 	}
 
 	// Инициализация хранилища
@@ -39,14 +33,8 @@ func main() {
 		logger.Fatalf("❌ Ошибка инициализации LLM client: %v", err)
 	}
 
-	// Инициализация SpeechKit клиента
-	speechClient, err := speechkit.NewClient()
-	if err != nil {
-		logger.Fatalf("❌ Ошибка инициализации Vosk Client: %v", err)
-	}
-
 	// Инициализация бота
-	bot, err := bot.NewBot(logger, db, llmClient, speechClient)
+	bot, err := bot.NewBot(logger, db, llmClient)
 	if err != nil {
 		logger.Fatalf("❌ Ошибка инициализации телеграм бота: %v", err)
 	}

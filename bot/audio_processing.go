@@ -5,13 +5,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"notes-ai-bot/speechkit"
+	speechkit "notes-ai-bot/speechkit"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 // ProcessAudio обрабатывает голосовые или видео заметки, возвращает транскрибированный текст
-func ProcessAudio(b *Bot, msg *tgbotapi.Message, speechClient *speechkit.Client, token string) (string, error) {
+func ProcessAudio(b *Bot, msg *tgbotapi.Message, token string) (string, error) {
 	var fileID string
 	if msg.Voice != nil {
 		fileID = msg.Voice.FileID
@@ -47,7 +47,7 @@ func ProcessAudio(b *Bot, msg *tgbotapi.Message, speechClient *speechkit.Client,
 	}
 
 	// Транскрипция
-	transcribedText, err := speechClient.Transcribe(wavPath)
+	transcribedText, err := speechkit.Transcribe(wavPath)
 	if err != nil {
 		b.logger.Printf("❌ Ошибка при транскрипции аудио: %v", err)
 		return "", fmt.Errorf("ошибка при расшифровке голоса")

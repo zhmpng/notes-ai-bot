@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"notes-ai-bot/llm"
-	"notes-ai-bot/speechkit"
 	"notes-ai-bot/storage"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -18,15 +17,14 @@ var ErrNoToken = errors.New("TELEGRAM_TOKEN не установлен")
 
 // Bot представляет Telegram-бота и его состояние.
 type Bot struct {
-	bot          *tgbotapi.BotAPI  // Telegram bot API клиент
-	logger       *log.Logger       // Логгер (дублирует вывод в файл и консоль)
-	db           *storage.Storage  // Хранилище заметок
-	llmClient    *llm.Client       // Клиент для работы с LLM
-	speechClient *speechkit.Client // Клиент для работы с распознаванием речи
+	bot       *tgbotapi.BotAPI // Telegram bot API клиент
+	logger    *log.Logger      // Логгер (дублирует вывод в файл и консоль)
+	db        *storage.Storage // Хранилище заметок
+	llmClient *llm.Client      // Клиент для работы с LLM
 }
 
 // NewBot создаёт и инициализирует нового бота с загрузкой конфигурации из .env.
-func NewBot(logger *log.Logger, db *storage.Storage, llmClient *llm.Client, speechClient *speechkit.Client) (*Bot, error) {
+func NewBot(logger *log.Logger, db *storage.Storage, llmClient *llm.Client) (*Bot, error) {
 	// Загружаем переменные окружения из .env файла
 	if err := godotenv.Load(); err != nil {
 		logger.Printf("⚠️ Не удалось загрузить .env файл: %v", err)
@@ -52,11 +50,10 @@ func NewBot(logger *log.Logger, db *storage.Storage, llmClient *llm.Client, spee
 
 	// Возвращаем новый экземпляр бота
 	return &Bot{
-		bot:          bot,
-		logger:       logger,
-		db:           db,
-		llmClient:    llmClient,
-		speechClient: speechClient,
+		bot:       bot,
+		logger:    logger,
+		db:        db,
+		llmClient: llmClient,
 	}, nil
 }
 
