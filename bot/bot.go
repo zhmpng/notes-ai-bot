@@ -19,7 +19,6 @@ var ErrNoToken = errors.New("TELEGRAM_TOKEN не установлен")
 // Bot представляет Telegram-бота и его состояние.
 type Bot struct {
 	bot          *tgbotapi.BotAPI  // Telegram bot API клиент
-	updateMode   map[int64]bool    // Режим обновления для каждого чата
 	logger       *log.Logger       // Логгер (дублирует вывод в файл и консоль)
 	db           *storage.Storage  // Хранилище заметок
 	llmClient    *llm.Client       // Клиент для работы с LLM
@@ -54,7 +53,6 @@ func NewBot(logger *log.Logger, db *storage.Storage, llmClient *llm.Client, spee
 	// Возвращаем новый экземпляр бота
 	return &Bot{
 		bot:          bot,
-		updateMode:   make(map[int64]bool),
 		logger:       logger,
 		db:           db,
 		llmClient:    llmClient,
@@ -70,16 +68,6 @@ func (b *Bot) Send(msg tgbotapi.Chattable) (tgbotapi.Message, error) {
 		return tgbotapi.Message{}, err
 	}
 	return message, nil
-}
-
-// AnswerCallbackQuery отправляет ответ на callback-запрос Telegram.
-func (b *Bot) AnswerCallbackQuery(callback tgbotapi.CallbackConfig) error {
-	_, err := b.bot.Request(callback)
-	if err != nil {
-		b.logger.Printf("❌ Ошибка ответа на callback-запрос: %v", err)
-		return err
-	}
-	return nil
 }
 
 // Start запускает бота, настраивая получение обновлений через polling.
@@ -101,6 +89,6 @@ func (b *Bot) StartPolling(updates tgbotapi.UpdatesChannel) {
 			continue
 		}
 
-		HandleMessage(b, update.Message, b.db, b.llmClient, b.speechClient, os.Getenv("TELEGRAM_TOKEN"))
+		HandleMessage(b, update.Message)
 	}
 }
