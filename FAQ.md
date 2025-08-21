@@ -116,26 +116,6 @@
 
 ---
 
-### ❓ Как сделать, чтобы переменные CGO не прописывать руками каждый раз?
-
-**Раз и навсегда в Go:**
-
-```powershell
-go env -w CGO_ENABLED=1
-go env -w CC="C:\msys64\mingw64\bin\gcc.exe"
-go env -w CXX="C:\msys64\mingw64\bin\g++.exe"
-go env -w CGO_CFLAGS="-IC:/Github/notes-ai-bot/vosk_lib"
-go env -w CGO_LDFLAGS="-LC:/Github/notes-ai-bot/vosk_lib -lvosk"
-```
-
-**В GoLand** всё равно укажи `PATH`, потому что `go env` не меняет системный PATH:
-
-```
-PATH=%PATH%;C:\msys64\mingw64\bin;C:\ffmpeg\bin
-```
-
----
-
 ### ❓ Я добавил PATH в системе, но GoLand всё равно «не видит» ffmpeg/gcc
 
 **Причина:** IDE запускалась до изменения переменных среды.
@@ -144,17 +124,6 @@ PATH=%PATH%;C:\msys64\mingw64\bin;C:\ffmpeg\bin
 
 * Полностью перезапусти **GoLand**.
 * Альтернатива: укажи `PATH` **в конфигурации Run/Debug** — это надёжнее и не зависит от системного PATH.
-
----
-
-### ❓ Как изменить/ограничить количество параллельных обработчиков сообщений?
-
-* В `.env`:
-
-  ```env
-  TELEGRAM_CONCURRENCY=8
-  ```
-* Выше — больше параллелизма, но выше нагрузка (VOSK и LLM — ресурсоёмкие).
 
 ---
 
