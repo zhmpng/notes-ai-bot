@@ -51,8 +51,8 @@
   CGO_ENABLED=1;
   CC=C:\msys64\mingw64\bin\gcc.exe;
   CXX=C:\msys64\mingw64\bin\g++.exe;
-  CGO_CFLAGS=-IZ:/Repos/notes-ai-bot/vosk_lib;
-  CGO_LDFLAGS=-LZ:/Repos/notes-ai-bot/vosk_lib -lvosk;
+  CGO_CFLAGS=-IC:/Github/notes-ai-bot/vosk_lib;
+  CGO_LDFLAGS=-LC:/Github/notes-ai-bot/vosk_lib -lvosk;
   PATH=%PATH%;C:\msys64\mingw64\bin;C:\ffmpeg\bin
   ```
 * Убедись, что пути к `vosk_lib` корректны (диск/директории).
@@ -69,7 +69,7 @@
 * Положи `libvosk.dll` рядом с `notes-ai-bot.exe` **или** добавь путь к папке с DLL в `PATH`, например:
 
   ```
-  PATH=%PATH%;Z:\Repos\notes-ai-bot\vosk_lib
+  PATH=%PATH%;C:\Github\notes-ai-bot\vosk_lib
   ```
 * Перезапусти GoLand/PowerShell, чтобы обновился PATH.
 
@@ -124,8 +124,8 @@
 go env -w CGO_ENABLED=1
 go env -w CC="C:\msys64\mingw64\bin\gcc.exe"
 go env -w CXX="C:\msys64\mingw64\bin\g++.exe"
-go env -w CGO_CFLAGS="-IZ:/Repos/notes-ai-bot/vosk_lib"
-go env -w CGO_LDFLAGS="-LZ:/Repos/notes-ai-bot/vosk_lib -lvosk"
+go env -w CGO_CFLAGS="-IC:/Github/notes-ai-bot/vosk_lib"
+go env -w CGO_LDFLAGS="-LC:/Github/notes-ai-bot/vosk_lib -lvosk"
 ```
 
 **В GoLand** всё равно укажи `PATH`, потому что `go env` не меняет системный PATH:
