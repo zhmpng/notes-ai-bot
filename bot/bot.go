@@ -4,6 +4,8 @@ import (
 	"errors"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"notes-ai-bot/llm"
 	"notes-ai-bot/storage"
@@ -15,77 +17,102 @@ import (
 // ErrNoToken возвращается, если TELEGRAM_TOKEN не установлен.
 var ErrNoToken = errors.New("TELEGRAM_TOKEN не установлен")
 
-// Bot представляет Telegram-бота и его состояние.
 type Bot struct {
-	bot       *tgbotapi.BotAPI // Telegram bot API клиент
-	logger    *log.Logger      // Логгер (дублирует вывод в файл и консоль)
-	db        *storage.Storage // Хранилище заметок
-	llmClient *llm.Client      // Клиент для работы с LLM
+	api         *tgbotapi.BotAPI
+	logger      *log.Logger
+	db          *storage.Storage
+	llmClient   *llm.Client
+	concurrency int
 }
 
-// NewBot создаёт и инициализирует нового бота с загрузкой конфигурации из .env.
-func NewBot(logger *log.Logger, db *storage.Storage, llmClient *llm.Client) (*Bot, error) {
-	// Загружаем переменные окружения из .env файла
-	if err := godotenv.Load(); err != nil {
-		logger.Printf("⚠️ Не удалось загрузить .env файл: %v", err)
-	}
+type Option func(*Bot)
 
-	// Получаем токен бота из переменной окружения
+// WithConcurrency настраивает количество параллельных воркеров обработки сообщений.
+func WithConcurrency(n int) Option {
+	return func(b *Bot) { b.concurrency = n }
+}
+
+func NewBot(logger *log.Logger, db *storage.Storage, llmClient *llm.Client, opts ...Option) (*Bot, error) {
+	_ = godotenv.Load()
 	token := os.Getenv("TELEGRAM_TOKEN")
 	if token == "" {
-		logger.Printf("❌ TELEGRAM_TOKEN не установлен")
 		return nil, ErrNoToken
 	}
 
-	// Инициализируем Telegram bot API
-	bot, err := tgbotapi.NewBotAPI(token)
+	api, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
-		logger.Printf("❌ Ошибка инициализации Telegram Bot API: %v", err)
 		return nil, err
 	}
 
-	// Отключаем отладочный режим
-	bot.Debug = false
-	logger.Printf("✅ Авторизован как %s", bot.Self.UserName)
-
-	// Возвращаем новый экземпляр бота
-	return &Bot{
-		bot:       bot,
-		logger:    logger,
-		db:        db,
-		llmClient: llmClient,
-	}, nil
-}
-
-// Send отправляет сообщение через Telegram Bot API.
-func (b *Bot) Send(msg tgbotapi.Chattable) (tgbotapi.Message, error) {
-	message, err := b.bot.Send(msg)
-	if err != nil {
-		b.logger.Printf("❌ Ошибка отправки сообщения: %v", err)
-		return tgbotapi.Message{}, err
+	b := &Bot{
+		api:         api,
+		logger:      logger,
+		db:          db,
+		llmClient:   llmClient,
+		concurrency: 8, // значение по умолчанию
 	}
-	return message, nil
+	for _, o := range opts {
+		o(b)
+	}
+
+	return b, nil
 }
 
-// Start запускает бота, настраивая получение обновлений через polling.
+func (b *Bot) Send(c tgbotapi.Chattable) (tgbotapi.Message, error) {
+	return b.api.Send(c)
+}
+
 func (b *Bot) Start() error {
-	// Настраиваем канал обновлений
+	b.logger.Printf("🚀 Запуск Telegram-бота (@%s)", b.api.Self.UserName)
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-	updates := b.bot.GetUpdatesChan(u) // GetUpdatesChan возвращает только канал
 
-	// Запускаем обработку обновлений
-	b.StartPolling(updates)
+	updates := b.api.GetUpdatesChan(u)
+
+	// Грейсфул-завершение
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	go b.startPollingAsync(updates)
+
+	<-stop
+	b.logger.Println("🛑 Остановка бота по сигналу")
 	return nil
 }
 
-// StartPolling запускает обработку входящих обновлений Telegram.
-func (b *Bot) StartPolling(updates tgbotapi.UpdatesChannel) {
+// Асинхронная обработка входящих обновлений с ограничением параллелизма.
+func (b *Bot) startPollingAsync(updates tgbotapi.UpdatesChannel) {
+	sem := make(chan struct{}, b.concurrency)
+	b.logger.Printf("🔄 Обработка обновлений запущена (параллельность: %d)", b.concurrency)
+
 	for update := range updates {
 		if update.Message == nil {
 			continue
 		}
+		sem <- struct{}{}
+		go func(u tgbotapi.Update) {
+			defer func() { <-sem }()
+			b.logger.Printf("📩 Сообщение от @%s (%d): тип=%s",
+				u.Message.From.UserName, u.Message.From.ID, messageKind(u.Message))
+			HandleMessage(b, u.Message)
+		}(update)
+	}
+	b.logger.Println("ℹ️ Канал обновлений Telegram закрыт")
+}
 
-		HandleMessage(b, update.Message)
+// Вспомогательная функция для красивых логов
+func messageKind(m *tgbotapi.Message) string {
+	switch {
+	case m.Text != "":
+		return "текст"
+	case m.Voice != nil:
+		return "voice"
+	case m.Audio != nil:
+		return "audio"
+	case m.VideoNote != nil:
+		return "videonote"
+	default:
+		return "другое"
 	}
 }

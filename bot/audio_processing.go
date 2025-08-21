@@ -22,7 +22,7 @@ func ProcessAudio(b *Bot, msg *tgbotapi.Message, token string) (string, error) {
 	}
 
 	// Скачивание файла
-	file, err := b.bot.GetFile(tgbotapi.FileConfig{FileID: fileID})
+	file, err := b.api.GetFile(tgbotapi.FileConfig{FileID: fileID})
 	if err != nil {
 		b.logger.Printf("❌ Ошибка получения файла: %v", err)
 		return "", fmt.Errorf("ошибка при скачивании голосового сообщения")
